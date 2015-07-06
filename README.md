@@ -2,8 +2,7 @@
 An auto growing text input bar for messaging apps. Written in Swift.
 ALTextInputBar is designed to solve a few issues that folks usually encounter when building messaging apps.
 
-
-```This fork allows outline drawn around text field within the bar, and other minor layout tweaks.```
+> *This fork adds an optional outline drawn around text field within the bar, and other minor layout tweaks.*
 
 ![With some text](https://cloud.githubusercontent.com/assets/932822/7333301/a510aa22-eb6a-11e4-988b-ac12e4e6c363.png)
 ![With lots of text](https://cloud.githubusercontent.com/assets/932822/7333307/cf101c04-eb6a-11e4-9a80-799cf3353a70.png)

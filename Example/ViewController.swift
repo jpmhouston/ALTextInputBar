@@ -14,6 +14,7 @@ class ViewController: UIViewController {
     
     let scrollView = UIScrollView()
     
+#if !TEST_AS_SUBVIEW
     // The magic sauce
     // This is how we attach the input bar to the keyboard
     override var inputAccessoryView: UIView? {
@@ -26,6 +27,7 @@ class ViewController: UIViewController {
     override func canBecomeFirstResponder() -> Bool {
         return true
     }
+#endif
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -33,9 +35,10 @@ class ViewController: UIViewController {
         configureScrollView()
         configureInputBar()
         
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardFrameChanged:", name: InputAccessoryViewKeyboardFrameDidChangeNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardWillShow:", name: UIKeyboardWillShowNotification, object: nil)
-        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardWillHide:", name: UIKeyboardWillHideNotification, object: nil)
+        // not needed:
+//        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardFrameChanged:", name: InputAccessoryViewKeyboardFrameDidChangeNotification, object: nil)
+//        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardWillShow:", name: UIKeyboardWillShowNotification, object: nil)
+//        NSNotificationCenter.defaultCenter().addObserver(self, selector: "keyboardWillHide:", name: UIKeyboardWillHideNotification, object: nil)
     }
 
     override func viewWillLayoutSubviews() {
@@ -43,6 +46,23 @@ class ViewController: UIViewController {
         scrollView.frame = view.bounds
     }
 
+#if TEST_AS_SUBVIEW
+    override func viewDidLayoutSubviews() { // debugging view heirarchy easier if added as a plain subview instead the magic sauce above
+        //textInputBar.layoutIfNeeded()
+        //let barHeight = textInputBar.frame.height // why does this get 0 instead of the correct height?
+        let barHeight = textInputBar.defaultHeight
+        
+        var barFrame = view.bounds
+        barFrame.size.height = barHeight
+        barFrame.origin.y = view.bounds.height - barHeight
+        textInputBar.frame = barFrame
+        
+        var scrollViewFrame = view.bounds
+        scrollViewFrame.size.height = scrollViewFrame.height - textInputBar.frame.height
+        scrollView.frame = scrollViewFrame
+    }
+#endif
+    
     func configureScrollView() {
         view.addSubview(scrollView)
         
@@ -56,6 +76,10 @@ class ViewController: UIViewController {
     }
     
     func configureInputBar() {
+#if TEST_AS_SUBVIEW
+        view.addSubview(textInputBar) // debugging view heirarchy easier if added as a plain subview instead the magic sauce above
+#endif
+        
         let leftButton = UIButton(frame: CGRectMake(0, 0, 44, 44))
         let rightButton = UIButton(frame: CGRectMake(0, 0, 44, 44))
         
@@ -65,25 +89,27 @@ class ViewController: UIViewController {
         textInputBar.leftView = leftButton
         textInputBar.rightView = rightButton
         
-        textInputBar.backgroundColor = UIColor.whiteColor()
+        textInputBar.fieldBackgroundColor = UIColor.whiteColor()
+        textInputBar.showFieldBorder = true
     }
 
-    func keyboardFrameChanged(notification: NSNotification) {
-        println("keyboardFrameChanged")
-        if let userInfo = notification.userInfo {
-            let frame = (userInfo[UIKeyboardFrameEndUserInfoKey] as! NSValue).CGRectValue()
-            
-            
-        }
-    }
-    
-    func keyboardWillShow(notification: NSNotification) {
-        println("keyboardWillShow")
-    }
-    
-    func keyboardWillHide(notification: NSNotification) {
-        println("keyboardWillHide")
-    }
+    // not needed:
+//    func keyboardFrameChanged(notification: NSNotification) {
+//        println("keyboardFrameChanged")
+//        if let userInfo = notification.userInfo {
+//            let frame = (userInfo[UIKeyboardFrameEndUserInfoKey] as! NSValue).CGRectValue()
+//            
+//            
+//        }
+//    }
+//    
+//    func keyboardWillShow(notification: NSNotification) {
+//        println("keyboardWillShow")
+//    }
+//    
+//    func keyboardWillHide(notification: NSNotification) {
+//        println("keyboardWillHide")
+//    }
     
 }
 

@@ -18,11 +18,53 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
     /// If true the right button will always be visible else it will only show when there is text in the text view
     public var alwaysShowRightButton = false
     
-    /// The horizontal padding between the view edges and its subviews
-    public var horizontalPadding: CGFloat = 0
+    /// The horizontal padding between the view edges and the side button views
+    public var buttonEdgeSpacing: CGFloat = 0
     
-    /// The horizontal spacing between subviews
-    public var horizontalSpacing: CGFloat = 5
+    /// The horizontal padding between the side buttons and the text field / border
+    public var textButtonSpacing: CGFloat = 0
+    
+    /// The horizontal padding between the view edges and the text field / border (if no button inbetween)
+    public var textEdgeSpacing: CGFloat = 8
+    
+    /// The corner radius of the border, if shown
+    public var fieldBorderRadius: CGFloat = 4
+    
+    /// The width of the border, if shown (0 means hairline, eg. 0.5 on 2x retina screens)
+    public var fieldBorderWidth: CGFloat = 0
+    
+    /// The distance from the border, if shown, to the text field
+    public var fieldBorderInset: CGFloat = 4
+    
+    /// The border color
+    public var borderColor: UIColor? = UIColor.lightGrayColor()
+    
+    /// The color of the field within the border, not used if border not shown
+    public var fieldBackgroundColor: UIColor? {
+        get {
+            return borderView.backgroundColor
+        }
+        set(newValue) {
+            borderView.backgroundColor = newValue
+        }
+    }
+    
+    /// If true the text view will have a border
+    public var showFieldBorder = false {
+        willSet(newValue) {
+            if newValue == true {
+                borderView.layer.borderColor = borderColor?.CGColor
+                borderView.layer.cornerRadius = fieldBorderRadius
+                borderView.layer.borderWidth = fieldBorderWidth > 0 ? fieldBorderWidth : (1.0 / UIScreen.mainScreen().scale)
+                borderView.setNeedsDisplay()
+            }
+            else {
+                borderView.layer.borderWidth = 0
+                borderView.layer.cornerRadius = 0
+                borderView.setNeedsDisplay()
+            }
+        }
+    }
     
     /// Convenience set and retrieve the text view text
     public var text: String! {
@@ -35,7 +77,7 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
         }
     }
     
-    /** 
+    /**
     This view will be displayed on the left of the text view.
     
     If this view is nil nothing will be displayed, and the text view will fill the space
@@ -91,7 +133,7 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
         
         _textView.font = UIFont.systemFontOfSize(14)
         _textView.textColor = UIColor.darkGrayColor()
-
+        
         _textView.backgroundColor = UIColor.clearColor()
         
         // This changes the caret color
@@ -100,9 +142,21 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
         return _textView
         }()
     
-    private var showRightButton = false
-    private var showLeftButton = false
+    private let borderView: UIView = {
         
+        let _borderView = UIView()
+        
+        _borderView.backgroundColor = UIColor.clearColor()
+        
+        _borderView.layer.borderColor = UIColor.lightGrayColor().CGColor
+        _borderView.layer.borderWidth = 0;
+        _borderView.layer.masksToBounds = true
+        
+        return _borderView
+        }()
+    
+    private var showRightButton = false
+    
     override public init(frame: CGRect) {
         super.init(frame: frame)
         commonInit()
@@ -114,7 +168,8 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
     }
     
     private func commonInit() {
-        addSubview(textView)
+        addSubview(borderView)
+        borderView.addSubview(textView)
         
         textView.textViewDelegate = self
         
@@ -122,7 +177,7 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
     }
     
     // MARK: - View positioning and layout -
-
+    
     override public func intrinsicContentSize() -> CGSize {
         return CGSizeMake(UIViewNoIntrinsicMetric, defaultHeight)
     }
@@ -139,12 +194,12 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
         if let view = leftView {
             leftViewSize = view.bounds.size
             
-            let leftViewX: CGFloat = horizontalPadding
+            let leftViewX: CGFloat = buttonEdgeSpacing
             let leftViewVerticalPadding = (defaultHeight - leftViewSize.height) / 2
             let leftViewY: CGFloat = height - (leftViewSize.height + leftViewVerticalPadding)
             view.frame = CGRectMake(leftViewX, leftViewY, leftViewSize.width, leftViewSize.height)
         }
-
+        
         if let view = rightView {
             rightViewSize = view.bounds.size
             
@@ -153,28 +208,37 @@ public class ALTextInputBar: ALKeyboardObservingInputBar, ALTextViewDelegate {
             let rightViewY = height - (rightViewSize.height + rightViewVerticalPadding)
             
             if showRightButton || alwaysShowRightButton {
-                rightViewX -= (rightViewSize.width + horizontalPadding)
+                rightViewX -= (rightViewSize.width + buttonEdgeSpacing)
             }
             
             view.frame = CGRectMake(rightViewX, rightViewY, rightViewSize.width, rightViewSize.height)
         }
         
+        var dxLeft = textEdgeSpacing
+        var dxRight = textEdgeSpacing
+        if (leftViewSize.width > 0) {
+            dxLeft = buttonEdgeSpacing + leftViewSize.width + textButtonSpacing
+        }
+        if (showRightButton || alwaysShowRightButton) && rightViewSize.width > 0 {
+            dxRight = textButtonSpacing + rightViewSize.width + buttonEdgeSpacing
+        }
+        
+        let textViewX = dxLeft
+        let textViewWidth = size.width - dxLeft - dxRight
+        
         let textViewPadding = (defaultHeight - textView.minimumHeight) / 2
-        var textViewX = horizontalPadding
         let textViewY = textViewPadding
         let textViewHeight = textView.expectedHeight
-        var textViewWidth = size.width - (horizontalPadding + horizontalPadding)
         
-        if leftViewSize.width > 0 {
-            textViewX += leftViewSize.width + horizontalSpacing
-            textViewWidth -= leftViewSize.width + horizontalSpacing
+        if showFieldBorder {
+            // inset the field horizontally from textViewX/textViewWidth, but outset the border vertically from textViewY/textViewHeight
+            borderView.frame = CGRectMake(textViewX, textViewY - fieldBorderInset, textViewWidth, textViewHeight + fieldBorderInset + fieldBorderInset)
+            textView.frame = CGRectMake(fieldBorderInset, fieldBorderInset, textViewWidth - fieldBorderInset - fieldBorderInset, textViewHeight)
         }
-        
-        if (showRightButton || alwaysShowRightButton) && rightViewSize.width > 0 {
-            textViewWidth -= (horizontalSpacing + rightViewSize.width)
+        else {
+            borderView.frame = CGRectMake(textViewX, textViewY, textViewWidth, textViewHeight)
+            textView.frame = CGRectMake(0, 0, textViewWidth, textViewHeight)
         }
-        
-        textView.frame = CGRectMake(textViewX, textViewY, textViewWidth, textViewHeight)
     }
     
     public func updateViews(animated: Bool) {
